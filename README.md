@@ -72,7 +72,7 @@ pnpm tauri build --bundles app
 - 未签名、未公证，需要手动去掉隔离属性。
 - YouTube 内嵌播放器在 `tauri://localhost` 来源下未经测试，可能无法播放。
 - B 站登录窗口的 Cookie 处理在 macOS 上走通用实现，未充分测试。
-- 应用内自动更新指向上游（Windows），macOS 版不会收到更新提示。
+- macOS 版未配置应用内更新，新版本需要到本 fork 的 Releases 手动下载。
 
 ## 快速开始
 
