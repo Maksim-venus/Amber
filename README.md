@@ -35,7 +35,7 @@ Amber 是一款开源的 AI 音视频处理工具，用户可以导入本地或�
 
 - [Releases › v0.1.0-macos-arm64](https://github.com/Maksim-venus/Amber/releases/tag/v0.1.0-macos-arm64)：`Amber_0.1.0_macos_arm64.zip`（附 `.sha256` 校验文件）。
 - 系统要求：Apple Silicon（M 系列芯片）Mac，macOS 11 及以上。
-- CI 构建：`macos-build` 分支每次推送、手动触发（workflow_dispatch）或推送 `v*-macos*` 标签时，[macos-build 工作流](https://github.com/Maksim-venus/Amber/actions/workflows/macos.yml) 会在 GitHub Actions（macos-14）上构建 arm64 版，产物 `amber-macos-arm64`（zip + `.sha256`）可在运行页面下载；标签构建还会自动附加到同名 Release（不覆盖已有文件）。
+- CI 构建：`macos-build` 分支每次推送、手动触发（workflow_dispatch）或推送 `v*-macos*` 标签时，[macos-build 工作流](https://github.com/Maksim-venus/Amber/actions/workflows/macos.yml) 会在 GitHub Actions（macos-15）上构建 arm64 版，产物 `amber-macos-arm64`（zip + `.sha256`）可在运行页面下载；标签构建还会自动附加到同名 Release（不覆盖已有文件）。
 
 ### 安装
 
