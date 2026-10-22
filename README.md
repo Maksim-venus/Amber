@@ -1,4 +1,10 @@
-# Amber（琥珀）
+<p align="center">
+  <img src="src/desktop/icons/128x128@2x.png" alt="Amber" width="160">
+</p>
+
+<h1 align="center">Amber（琥珀）</h1>
+
+<p align="center"><em>Knowledge finds its way</em></p>
 
 Amber 是一款开源的 AI 音视频处理工具，用户可以导入本地或平台（Bilibili/YouTube）上的音视频，取得带时间戳的字幕文稿，再用 AI 校对、总结、翻译等。
 
