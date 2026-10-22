@@ -105,8 +105,15 @@ import type { Repository } from "./ports/repository.ts";
 import type { Logger } from "./ports/logger.ts";
 import { childProcessEnv } from "./ports/process-runner.ts";
 
-/** Origin of the Tauri WebView on Windows (`useHttpsScheme` is false). */
-const TAURI_ORIGIN = "http://tauri.localhost";
+/**
+ * Origin of the Tauri WebView: WebView2 on Windows serves the app from `http://tauri.localhost`
+ * (`useHttpsScheme` is false); WKWebView (macOS) and WebKitGTK (Linux) use the custom
+ * `tauri://localhost` scheme.
+ */
+export function tauriOrigin(platform: NodeJS.Platform = process.platform): string {
+  return platform === "win32" ? "http://tauri.localhost" : "tauri://localhost";
+}
+const TAURI_ORIGIN = tauriOrigin();
 
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];

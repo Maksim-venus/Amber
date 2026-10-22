@@ -43,7 +43,7 @@ describe("child process environment contract", () => {
     );
     const keys = Object.keys(runner.specs[0]?.env ?? {}).sort();
     // The profile folders locate browser profiles for `--cookies-from-browser`; the user profile itself stays out.
-    expect(keys).toEqual(["APPDATA", "FFREPORT", "LANG", "LOCALAPPDATA", "SystemRoot", "TEMP"]);
+    expect(keys).toEqual(["APPDATA", "FFREPORT", "HOME", "LANG", "LOCALAPPDATA", "SystemRoot", "TEMP"]);
     expect(keys).not.toContain("AMBER_SECRET_KEY");
     expect(keys.filter((key) => key.startsWith("AMBER_"))).toEqual([]);
   });
