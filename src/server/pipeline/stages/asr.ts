@@ -1,0 +1,643 @@
+import { createHash } from "node:crypto";
+import { monotonicFactory } from "ulid";
+import { z } from "zod";
+import { asrModelFamily } from "../../../shared/asr-presets.ts";
+import {
+  ASR_JOB_MAX_WAIT_HOURS,
+  ASR_KEYTERMS_MAX,
+  ASR_POLL_INTERVAL_MAX_MS,
+  ASR_POLL_INTERVAL_MS,
+  RETRY_MAX,
+} from "../../../shared/defaults.ts";
+import type { SegmentId } from "../../../shared/ids.ts";
+import { BYTES_PER_GB } from "../../../shared/units.ts";
+import { ASR_AWAIT_UNIT_KEY, ASR_SUBMIT_UNIT_KEY } from "../../../shared/work-steps.ts";
+import { asrJobHandleSchema, assignWordsToSentences, truncateTerminologyForAsr, type CanonicalAsrResult } from "../../domain/asr.ts";
+import { canonicalJson } from "../../domain/canonical-json.ts";
+import type { Content } from "../../domain/content.ts";
+import { amberError, isAmberError } from "../../domain/errors.ts";
+import type { MediaAsset } from "../../domain/media-asset.ts";
+import type { AsrProviderProfile } from "../../domain/provider-profile.ts";
+import type { TerminologyEntry } from "../../domain/terminology.ts";
+import { canonicalLanguageTag } from "../../domain/subtitle-file.ts";
+import { revisionTakesPrimary, type TranscriptRevision, type TranscriptSegment, type TranscriptWord } from "../../domain/transcript.ts";
+import type { UsageOutcome } from "../../domain/usage.ts";
+import type { WorkUnit } from "../../domain/task.ts";
+import {
+  isAsrJobProvider,
+  type AsrJobHandle,
+  type AsrJobProvider,
+  type AsrProvider,
+  type AsrProviderFactory,
+  type AsrSyncProvider,
+} from "../../ports/asr-provider.ts";
+import type { FileStore } from "../../ports/file-store.ts";
+import type { LocalMediaIngest } from "../../ports/local-media-ingest.ts";
+import type { Repository, RepositoryScope } from "../../ports/repository.ts";
+import { UnitDeferred, type StageExecutionContext, type StageExecutor, type StageOutcome, type UnitIdentity } from "../executor.ts";
+import type { MediaFiles } from "../media-files.ts";
+import { ensureExtractedAudio } from "./extracted-audio.ts";
+import { platformTarget, taskContent, type PlatformAccess } from "./platform-access.ts";
+import { span } from "./progress.ts";
+import { availableMediaSource, taskScratchRef } from "./source-media.ts";
+
+export interface AsrStageDeps {
+  repository: Repository;
+  /** The data store: audio and checkpoints live here. */
+  files: FileStore;
+  /** Where the source media is read from by its kind; defaults to `files` for every kind. */
+  media?: Pick<MediaFiles, "storeFor">;
+  ingest: LocalMediaIngest;
+  /** Platform Contents without a cached video download their audio through here. */
+  platforms?: PlatformAccess;
+  /** The factory implementing a profile's provider; composed from the adapters. */
+  asr(provider: AsrProviderProfile["provider"]): AsrProviderFactory | undefined;
+  now?: () => number;
+  newId?: () => string;
+  /** Source of the polling jitter; `Math.random` by default. */
+  random?: () => number;
+}
+
+/**
+ * The stage's progress segments, one per step in order: the platform audio
+ * download ends at `ASR_FETCH_PROGRESS_END`, the extraction at `ASR_EXTRACT_PROGRESS_END`,
+ * and the upload and transcription fill the rest. Without a download (a local file or a
+ * cached video) the extraction takes the download's share too. A step whose output
+ * already exists is skipped, so the bar starts at the segment of the first step that runs.
+ */
+const ASR_FETCH_PROGRESS_END = 0.4;
+const ASR_EXTRACT_PROGRESS_END = 0.5;
+/**
+ * Where a job's upload and submission end. The wait for its result moves nothing, so the
+ * bar stops short of full until the result is published rather than sitting at 100%.
+ */
+const ASR_JOB_SUBMITTED_PROGRESS = 0.9;
+const SECONDS_PER_HOUR = 3600;
+const MS_PER_HOUR = 3_600_000;
+/** Growth of the interval between two state queries of a job. */
+const POLL_BACKOFF_FACTOR = 1.5;
+/** A provider-named wait is honoured up to this many longest polling intervals. */
+const RETRY_AFTER_CAP_FACTOR = 10;
+/** Relative spread of a polling wait, both ways. */
+const POLL_JITTER = 0.1;
+
+/**
+ * Codes with which a job ended for good on the provider's side: a re-run after one of them
+ * submits the audio again rather than taking the ended job over.
+ */
+export const JOB_ENDED_CODES: ReadonlySet<string> = new Set([
+  "asr_failed.job_failed",
+  "asr_failed.job_expired",
+  "asr_failed.invalid_audio",
+  "media_no_audio",
+]);
+
+/** What one run of the stage submits: the bound profile and model, the Content, the terminology to send and the audio, taken on demand. */
+interface Submission {
+  context: StageExecutionContext;
+  profile: AsrProviderProfile;
+  modelId: string;
+  content: Content;
+  terminology: TerminologyEntry[];
+  audio: () => Promise<{ asset: MediaAsset; audioMs: number }>;
+}
+
+function checkpointRefOf(taskId: string, unit: Pick<UnitIdentity, "id">): string {
+  return `${taskScratchRef(taskId)}/asr-${unit.id}.json`;
+}
+
+/** The checkpoint as read back from disk; written by this stage from the provider's result. */
+const checkpointSchema = z.object({
+  text: z.string(),
+  language: z.string(),
+  segments: z.array(
+    z.object({ startMs: z.number(), endMs: z.number(), text: z.string(), speakerId: z.string().exactOptional() }),
+  ),
+  words: z.array(z.object({ text: z.string(), startMs: z.number(), endMs: z.number() })).exactOptional(),
+  provider: z.string(),
+  model: z.string(),
+  rawResponseRef: z.string().exactOptional(),
+  durationMs: z.number(),
+});
+
+interface Sentence {
+  startMs: number;
+  endMs: number;
+  text: string;
+  speakerId?: string;
+}
+
+const CJK_EDGE_END = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]$/u;
+const CJK_EDGE_START = /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
+/**
+ * The `asr` stage of `process_content` and `retranscribe`, run with the ASR
+ * model the stage is bound to. Audio is taken on demand once the requirement holds and
+ * the whole file goes to the provider. A synchronous provider answers in one paid,
+ * file-backed WorkUnit; a job provider is submitted once (`asr:submit`, keeping the job
+ * handle) and its job awaited (`asr:await`). Either way the provider-neutral result is the
+ * checkpoint under `tmp/tasks/<taskId>/`: a crash after the result reached the disk, a
+ * confirmed re-send or a re-run of the stage then publishes from that file instead of
+ * paying again. Every submission that crossed the send boundary is recorded as usage on
+ * its own, right after the call.
+ *
+ * The published revision is the immutable `asr` original, with real word timing
+ * (`exact_words`) when the provider returned usable words and sentence timing only
+ * (`segment_only`) otherwise; words are assigned to sentences by their midpoint. It becomes
+ * primary only when there is no primary yet or the current primary is itself a root revision
+ * (`platform` or `asr`), so manual, imported and corrected revisions stay.
+ */
+export class AsrStageExecutor implements StageExecutor {
+  private readonly deps: AsrStageDeps;
+  private readonly now: () => number;
+  private readonly newId: () => string;
+  private readonly random: () => number;
+
+  constructor(deps: AsrStageDeps) {
+    this.deps = deps;
+    this.now = deps.now ?? Date.now;
+    this.newId = deps.newId ?? monotonicFactory();
+    this.random = deps.random ?? Math.random;
+  }
+
+  async run(context: StageExecutionContext): Promise<StageOutcome> {
+    const { repository } = this.deps;
+    const content = taskContent(repository, context);
+    const owner = content.userId;
+    const ref = context.asrModelRef;
+    const profile = ref === undefined ? undefined : repository.withTransaction((scope) => scope.asrProfiles.get(owner, ref.asrProfileId));
+    const entry = ref === undefined ? undefined : profile?.models.find((model) => model.modelId === ref.modelId);
+    if (ref === undefined || profile?.credentialRef === undefined || entry === undefined) {
+      throw amberError("asr_unconfigured", "no ASR profile with a credential listing the bound model");
+    }
+    const factory = this.deps.asr(profile.provider);
+    if (factory === undefined) {
+      throw amberError("internal", "no ASR adapter for the profile's provider");
+    }
+    // A model whose request family no longer resolves stays on the profile for the user to
+    // remove, but cannot transcribe.
+    if (asrModelFamily(factory.descriptor, entry) === undefined) {
+      throw amberError("asr_failed", "the bound model has no request family the provider supports", { code: "asr_failed.model_unavailable" });
+    }
+    const { modelId } = ref;
+    const provider = factory.create(profile, modelId);
+    // A job submitted in this attempt is never submitted again: its unit keeps the digest it
+    // was submitted under, whatever the terminology or language became since.
+    const anchored = isAsrJobProvider(provider) ? this.submittedUnit(owner, context) : undefined;
+    const audio = this.audioOnDemand(context);
+    if (anchored === undefined) {
+      const { asset, audioMs } = await audio();
+      checkProviderLimits(provider, asset, audioMs);
+    }
+
+    const effective = repository.withTransaction((scope) => scope.terminology.effectiveFor(owner, content.id));
+    const reasons: string[] = [];
+    const biased = provider.capabilities.terminologyBias;
+    const terms = truncateTerminologyForAsr(biased ? effective : [], provider.capabilities, ASR_KEYTERMS_MAX);
+    if (!biased && effective.length > 0) {
+      reasons.push("terminology_not_applied");
+    }
+    if (terms.droppedTooLong > 0 || terms.cutOff > 0) {
+      reasons.push("terminology_truncated");
+    }
+    const digestBase = {
+      audio: this.audioSource(content),
+      language: content.rawLanguage ?? null,
+      terms: terms.entries.map((entry) => entry.term),
+      asrProfileId: profile.id,
+      provider: profile.provider,
+      model: modelId,
+      // The endpoint is part of the job's identity: a job is only known where it was submitted.
+      baseURL: profile.baseURL ?? null,
+    };
+    const submission = { context, profile, modelId, content, terminology: terms.entries, audio };
+    const result = isAsrJobProvider(provider)
+      ? await this.transcribeAsJob(provider, submission, anchored?.inputDigest ?? digestOf(canonicalJson({ ...digestBase, submissionGeneration: this.submissionGeneration(owner, context) })))
+      : await this.transcribeAtOnce(provider, submission, digestOf(canonicalJson(digestBase)));
+
+    const { revision, segments, merged } = this.buildRevision(content, profile, modelId, result);
+    if (merged > 0) {
+      reasons.push("asr_segment_merged");
+    }
+    if (revision.timingFidelity === "segment_only" && provider.capabilities.wordTimestamps) {
+      reasons.push("asr_words_dropped");
+    }
+    const language = revision.language;
+    return {
+      resultJson: {
+        revisionId: revision.id,
+        reasons,
+        terminology: { sent: terms.entries.length, droppedTooLong: terms.droppedTooLong, cutOff: terms.cutOff },
+      },
+      publish: (scope) => {
+        scope.transcripts.insertRevision(owner, revision, segments);
+        const current = scope.contents.getIncludingTrashed(owner, content.id);
+        const primary =
+          current?.primaryTranscriptRevisionId === undefined ? undefined : scope.transcripts.getRevision(owner, current.primaryTranscriptRevisionId);
+        if (revisionTakesPrimary(revision, primary)) {
+          scope.contents.setPrimaryTranscript(owner, content.id, revision.id, this.now());
+          scope.search.syncContent(owner, content.id);
+        }
+        this.writeRawLanguage(scope, content, language);
+      },
+    };
+  }
+
+  /**
+   * The extracted audio, taken on first use and kept for the rest of the run. A job stage
+   * re-entered after its submission never needs it.
+   */
+  private audioOnDemand(context: StageExecutionContext): () => Promise<{ asset: MediaAsset; audioMs: number }> {
+    let taken: Promise<{ asset: MediaAsset; audioMs: number }> | undefined;
+    return () => {
+      taken ??= (async () => {
+        const report = (progress: number): void => context.reportProgress(progress);
+        const { asset } = await ensureExtractedAudio(context, {
+          repository: this.deps.repository,
+          files: this.deps.files,
+          ...(this.deps.media === undefined ? {} : { media: this.deps.media }),
+          ingest: this.deps.ingest,
+          ...(this.deps.platforms === undefined ? {} : { platforms: this.deps.platforms }),
+          now: this.now,
+          newId: this.newId,
+        }, {
+          fetch: span(report, 0, ASR_FETCH_PROGRESS_END),
+          extract: span(report, ASR_FETCH_PROGRESS_END, ASR_EXTRACT_PROGRESS_END),
+          extractAlone: span(report, 0, ASR_EXTRACT_PROGRESS_END),
+        });
+        return { asset, audioMs: asset.durationMs ?? context.content?.durationMs ?? 0 };
+      })();
+      return taken;
+    };
+  }
+
+  /** A synchronous provider: one paid, file-backed unit whose output is the result itself. */
+  private async transcribeAtOnce(provider: AsrSyncProvider, submission: Submission, inputDigest: string): Promise<CanonicalAsrResult> {
+    const { context } = submission;
+    const taskId = context.task.id;
+    const output = await context.runUnit({
+      key: ASR_SUBMIT_UNIT_KEY,
+      inputDigest,
+      storage: "file",
+      billing: "asr",
+      checkpointRef: (unit: UnitIdentity) => checkpointRefOf(taskId, unit),
+      run: async (signal: AbortSignal, unit: UnitIdentity) => {
+        const result = await this.submit(provider, submission, signal);
+        return this.writeCheckpoint(taskId, unit, result);
+      },
+    });
+    return this.readCheckpoint(output.outputRef);
+  }
+
+  /**
+   * A job provider: `asr:submit` uploads and creates the job once and keeps
+   * its handle (DB-only, paid from the moment the creating request is sent); `asr:await`
+   * asks for the job's state once per run and waits as `pending` in between, freeing the
+   * Task slot, until the result is ready and written as the checkpoint. Queries are free,
+   * so a crash while waiting just queries again.
+   */
+  private async transcribeAsJob(provider: AsrJobProvider, submission: Submission, inputDigest: string): Promise<CanonicalAsrResult> {
+    const { context, profile } = submission;
+    const taskId = context.task.id;
+    const stored = await context.runUnit<AsrJobHandle>({
+      key: ASR_SUBMIT_UNIT_KEY,
+      inputDigest,
+      billing: "asr",
+      paidCallStart: "explicit",
+      run: async (signal: AbortSignal, unit: UnitIdentity) => this.submitJob(provider, submission, signal, unit),
+    });
+    const parsed = asrJobHandleSchema.safeParse(stored);
+    if (!parsed.success) {
+      throw amberError("internal", "stored ASR job handle does not match its schema");
+    }
+    const handle: AsrJobHandle = parsed.data;
+    const output = await context.runUnit({
+      key: ASR_AWAIT_UNIT_KEY,
+      inputDigest: digestOf(canonicalJson({ jobId: handle.jobId, asrProfileId: profile.id })),
+      storage: "file",
+      checkpointRef: (unit: UnitIdentity) => checkpointRefOf(taskId, unit),
+      run: async (signal: AbortSignal, unit: UnitIdentity) => {
+        if (this.now() - handle.submittedAt > ASR_JOB_MAX_WAIT_HOURS * MS_PER_HOUR) {
+          throw amberError("asr_failed", "the ASR job exceeded the longest wait", { code: "asr_failed.job_expired" });
+        }
+        const status = await context.withHeavySlot(() => provider.poll(handle, { signal }));
+        switch (status.state) {
+          case "pending":
+            throw new UnitDeferred(this.now() + asrPollDelayMs(unit.attempt, status.retryAfterMs, this.random), { resetRetries: true });
+          case "missing":
+            // A job may take a moment to become visible; a few answers are tolerated as
+            // transient before the job counts as gone.
+            if (unit.retryCount + 1 < RETRY_MAX) {
+              throw amberError("asr_failed", "the ASR job is not known to the provider yet");
+            }
+            throw amberError("asr_failed", "the ASR job is not known to the provider", { code: "asr_failed.job_expired" });
+          case "done":
+            return this.writeCheckpoint(taskId, unit, status.result);
+        }
+      },
+    });
+    return this.readCheckpoint(output.outputRef);
+  }
+
+  /** The `asr:submit` unit this attempt already completed, if any. */
+  private submittedUnit(owner: string, context: StageExecutionContext): WorkUnit | undefined {
+    return this.deps.repository.withTransaction((scope) =>
+      scope.workUnits
+        .listByStageRun(owner, context.stageRun.id)
+        .find((unit) => unit.key === ASR_SUBMIT_UNIT_KEY && unit.status === "succeeded"),
+    );
+  }
+
+  /**
+   * How many earlier attempts saw their job end for good on the provider's side. It is part
+   * of the submission digest, so a re-run after such an end submits anew, while a re-run
+   * after a local or transient failure takes the earlier job over instead of paying again.
+   */
+  private submissionGeneration(owner: string, context: StageExecutionContext): number {
+    const taskId = context.task.id;
+    return this.deps.repository.withTransaction((scope) => {
+      const earlier = new Set(
+        scope.stageRuns
+          .listByTask(owner, taskId)
+          .filter((run) => run.stage === context.stageRun.stage && run.attempt < context.stageRun.attempt)
+          .map((run) => run.id),
+      );
+      return scope.workUnits
+        .listByTask(owner, taskId)
+        .filter(
+          (unit) =>
+            earlier.has(unit.stageRunId) &&
+            unit.key === ASR_AWAIT_UNIT_KEY &&
+            unit.status === "failed" &&
+            unit.error !== undefined &&
+            JOB_ENDED_CODES.has(unit.error.code),
+        ).length;
+    });
+  }
+
+  private async writeCheckpoint(taskId: string, unit: UnitIdentity, result: CanonicalAsrResult): Promise<{ outputRef: string; outputDigest: string }> {
+    const outputRef = checkpointRefOf(taskId, unit);
+    const written = await this.deps.files.writeAtomic(outputRef, Buffer.from(canonicalJson(result), "utf8"));
+    return { outputRef, outputDigest: written.digest };
+  }
+
+  /** One paid submission, recorded as usage the moment it ends unless it never left. */
+  private async submit(provider: AsrSyncProvider, submission: Submission, signal: AbortSignal): Promise<CanonicalAsrResult> {
+    const { context, content, terminology } = submission;
+    const { asset, audioMs } = await submission.audio();
+    let result: CanonicalAsrResult;
+    try {
+      result = await provider.transcribe(
+        { audio: asset, terminology, ...(content.rawLanguage === undefined ? {} : { language: content.rawLanguage }) },
+        { signal, onProgress: span((progress) => context.reportProgress(progress), ASR_EXTRACT_PROGRESS_END, 1) },
+      );
+    } catch (error) {
+      const outcome = failedOutcome(error, signal);
+      if (outcome !== undefined) {
+        this.recordUsage(submission, audioMs, outcome);
+      }
+      throw error;
+    }
+    this.recordUsage(submission, audioMs, "succeeded");
+    return result;
+  }
+
+  /**
+   * Creates the job. Only a failure after the creating request was on its way can have been
+   * billed, so only then is usage recorded; the upload before it is free.
+   */
+  private async submitJob(provider: AsrJobProvider, submission: Submission, signal: AbortSignal, unit: UnitIdentity): Promise<AsrJobHandle> {
+    const { context, content, terminology } = submission;
+    const { asset, audioMs } = await submission.audio();
+    let sent = false;
+    let handle: AsrJobHandle;
+    try {
+      handle = await provider.submit(
+        { audio: asset, terminology, ...(content.rawLanguage === undefined ? {} : { language: content.rawLanguage }) },
+        {
+          signal,
+          onProgress: span((progress) => context.reportProgress(progress), ASR_EXTRACT_PROGRESS_END, ASR_JOB_SUBMITTED_PROGRESS),
+          onPaidCallStart: () => {
+            sent = true;
+            unit.markPaidCallStart();
+          },
+        },
+      );
+    } catch (error) {
+      const outcome = sent ? failedOutcome(error, signal) : undefined;
+      if (outcome !== undefined) {
+        this.recordUsage(submission, audioMs, outcome);
+      }
+      throw error;
+    }
+    this.recordUsage(submission, audioMs, "succeeded");
+    return { version: handle.version, provider: handle.provider, jobId: handle.jobId, submittedAt: handle.submittedAt };
+  }
+
+  private recordUsage(submission: Submission, audioMs: number, outcome: UsageOutcome): void {
+    const { context, profile, modelId, content } = submission;
+    this.deps.repository.withTransaction((scope) =>
+      scope.asrUsage.insert({
+        id: this.newId(),
+        userId: content.userId,
+        asrProfileId: profile.id,
+        provider: profile.provider,
+        model: modelId,
+        feature: "transcribe",
+        outcome,
+        audioMs,
+        taskId: context.task.id,
+        contentId: content.id,
+        createdAt: this.now(),
+      }),
+    );
+  }
+
+  /**
+   * What the audio is made from, stable across re-extraction and re-download: the original
+   * or cached file's fingerprint, else the platform identity. The digest must not depend on
+   * the extracted bytes, or a re-run after the Task's audio was cleaned up could never reuse
+   * a paid result.
+   */
+  private audioSource(content: Content): string {
+    const source = this.deps.repository.withTransaction((scope) => availableMediaSource(scope, content.userId, content.id));
+    if (source !== undefined) {
+      return source.fingerprint ?? `asset:${source.id}`;
+    }
+    const target = this.deps.platforms === undefined ? undefined : platformTarget(this.deps.platforms, content);
+    if (target === undefined) {
+      throw amberError("media_missing", "no media to transcribe");
+    }
+    return `platform:${target.adapter.kind}:${target.ref.platformContentId}:${target.ref.platformPartId ?? ""}`;
+  }
+
+  private async readCheckpoint(ref: string): Promise<CanonicalAsrResult> {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of this.deps.files.read(ref)) {
+      chunks.push(chunk);
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch (error) {
+      throw amberError("internal", `unreadable ASR checkpoint: ${String(error)}`);
+    }
+    const checked = checkpointSchema.safeParse(parsed);
+    if (!checked.success) {
+      throw amberError("internal", "ASR checkpoint does not match the canonical result");
+    }
+    return checked.data;
+  }
+
+  /**
+   * The `asr` revision. Sentences are normalized deterministically before the segment
+   * invariants are enforced (every committed segment carries a valid time range, since
+   * citations point at it): blank ones are dropped (they carry no text), overlaps are clipped to the
+   * previous end, and a sentence left without positive duration is merged into its
+   * neighbour rather than dropped, so no recognized text is lost (a result whose only
+   * sentence is instantaneous gets the shortest valid span). Words are then assigned
+   * by midpoint to the surviving sentences.
+   */
+  private buildRevision(
+    content: Content,
+    profile: AsrProviderProfile,
+    modelId: string,
+    result: CanonicalAsrResult,
+  ): { revision: TranscriptRevision; segments: TranscriptSegment[]; merged: number } {
+    const { sentences, merged } = normalizeSentences(result.segments);
+    if (sentences.length === 0) {
+      // Nothing recognizable was said; the closest existing meaning is "nothing to transcribe".
+      throw amberError("media_no_audio", "the ASR result holds no speech");
+    }
+    const words = (result.words ?? [])
+      .map((word) => ({ text: word.text, startMs: Math.round(word.startMs), endMs: Math.round(word.endMs) }))
+      .filter((word) => word.text.trim() !== "" && word.startMs >= 0 && word.startMs <= word.endMs);
+    const assigned = assignWordsToSentences(sentences, words);
+    const revisionId = this.newId();
+    const segments: TranscriptSegment[] = sentences.map((sentence, ordinal) => ({
+      id: this.newId() as SegmentId,
+      revisionId,
+      ordinal,
+      startMs: sentence.startMs,
+      endMs: sentence.endMs,
+      text: sentence.text,
+      // Without usable words the revision claims sentence timing only and carries none.
+      ...(words.length > 0 ? { words: assigned[ordinal] as TranscriptWord[] } : {}),
+      ...(sentence.speakerId === undefined ? {} : { speakerId: sentence.speakerId }),
+      sourceSegmentIds: [],
+    }));
+    const revision: TranscriptRevision = {
+      id: revisionId,
+      contentId: content.id,
+      kind: "asr",
+      language: canonicalLanguageTag(result.language) ?? "und",
+      timingFidelity: words.length > 0 ? "exact_words" : "segment_only",
+      generation: { kind: "asr", asrProfileId: profile.id, modelId },
+      segmentCount: segments.length,
+      createdAt: this.now(),
+    };
+    return { revision, segments, merged };
+  }
+
+  private writeRawLanguage(scope: RepositoryScope, content: Content, language: string): void {
+    if (language !== "und" && scope.contents.getIncludingTrashed(content.userId, content.id)?.rawLanguage === undefined) {
+      scope.contents.setMetadata(content.userId, content.id, { rawLanguage: language }, this.now());
+    }
+  }
+}
+
+/**
+ * Waiting time before the next state query of a job, for the query run number `attempt`
+ * (1-based): the provider's own wait, bounded, else a growing interval from
+ * `ASR_POLL_INTERVAL_MS` up to `ASR_POLL_INTERVAL_MAX_MS`; either is spread by a jitter so
+ * many waiting Tasks do not query in step.
+ */
+export function asrPollDelayMs(attempt: number, retryAfterMs: number | undefined, random: () => number): number {
+  const base =
+    retryAfterMs === undefined
+      ? Math.min(ASR_POLL_INTERVAL_MAX_MS, ASR_POLL_INTERVAL_MS * POLL_BACKOFF_FACTOR ** Math.max(0, attempt - 1))
+      : Math.min(Math.max(0, retryAfterMs), RETRY_AFTER_CAP_FACTOR * ASR_POLL_INTERVAL_MAX_MS);
+  return Math.round(base * (1 + (random() * 2 - 1) * POLL_JITTER));
+}
+
+/** Provider limits are checked locally before anything is sent; the audio is never degraded to fit. */
+function checkProviderLimits(provider: AsrProvider, audio: MediaAsset, audioMs: number): void {
+  const { maxFileBytes, maxDurationSec } = provider.capabilities;
+  if (audio.sizeBytes > maxFileBytes) {
+    throw amberError("media_too_large", "audio exceeds the provider's file limit", {
+      params: { limit: `${Math.floor((maxFileBytes / BYTES_PER_GB) * 10) / 10} GB` },
+    });
+  }
+  if (audioMs > maxDurationSec * 1000) {
+    throw amberError("media_too_long", "audio exceeds the provider's duration limit", {
+      params: { limit: `${Math.floor((maxDurationSec / SECONDS_PER_HOUR) * 10) / 10} h` },
+    });
+  }
+}
+
+/**
+ * Usage outcome of a failed submission, or `undefined` when nothing was sent: a failure
+ * before the last chunk left is never billed. A failure the adapter did not classify is
+ * counted as unknown once the call was aborted mid-way, since it may have been billed.
+ */
+function failedOutcome(error: unknown, signal: AbortSignal): UsageOutcome | undefined {
+  if (isAmberError(error)) {
+    if (error.appError.retryDisposition === "safe") {
+      return undefined;
+    }
+    return error.appError.retryDisposition === "outcome_unknown" ? "outcome_unknown" : "failed";
+  }
+  return signal.aborted ? "outcome_unknown" : "failed";
+}
+
+function normalizeSentences(raw: CanonicalAsrResult["segments"]): { sentences: Sentence[]; merged: number } {
+  const ordered = raw
+    .map((segment) => ({
+      startMs: Math.max(0, Math.round(segment.startMs)),
+      endMs: Math.round(segment.endMs),
+      text: segment.text.trim(),
+      ...(segment.speakerId === undefined ? {} : { speakerId: segment.speakerId }),
+    }))
+    .filter((segment) => segment.text !== "")
+    .map((segment, index) => ({ segment, index }))
+    .sort((a, b) => a.segment.startMs - b.segment.startMs || a.index - b.index)
+    .map(({ segment }) => segment);
+  const sentences: Sentence[] = [];
+  let pending: Sentence | undefined;
+  let merged = 0;
+  for (const segment of ordered) {
+    const previous = sentences.at(-1);
+    const startMs = previous === undefined ? segment.startMs : Math.max(segment.startMs, previous.endMs);
+    let current: Sentence = { ...segment, startMs };
+    if (pending !== undefined) {
+      current = { ...current, startMs: Math.min(pending.startMs, current.startMs), text: joinText(pending.text, current.text) };
+      pending = undefined;
+    }
+    if (current.endMs > current.startMs) {
+      sentences.push(current);
+      continue;
+    }
+    merged += 1;
+    if (previous === undefined) {
+      pending = current;
+    } else {
+      previous.text = joinText(previous.text, current.text);
+      previous.endMs = Math.max(previous.endMs, current.endMs);
+    }
+  }
+  if (pending !== undefined) {
+    // Everything recognized fits in one instant: the shortest valid span keeps the text
+    // citable (start < end) without moving its start.
+    sentences.push({ ...pending, endMs: pending.startMs + 1 });
+  }
+  return { sentences, merged };
+}
+
+/** Joins texts without a space between two CJK characters, with one otherwise. */
+function joinText(left: string, right: string): string {
+  return CJK_EDGE_END.test(left) && CJK_EDGE_START.test(right) ? `${left}${right}` : `${left} ${right}`;
+}
+
+function digestOf(text: string): string {
+  return `sha256:${createHash("sha256").update(text).digest("hex")}`;
+}

@@ -1,0 +1,26 @@
+name: release
+on: push
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: windows-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - run: >-
+          gh release
+          upload v0.1.0 out/*.exe
+      - name: sign
+        run: signtool sign /f cert.pfx out\amber.exe
+  other:
+    runs-on: ubuntu-latest
+    env: { KEY: "${{ toJSON(secrets) }}" }
+    steps: [{ run: "pnpm tauri signer sign" }]
+    permissions:
+      contents: write
+    steps2:
+      - run: gh release edit v0.1.0

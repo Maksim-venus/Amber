@@ -1,0 +1,226 @@
+{
+  "sanitized": true,
+ "_fixture": "synthetic; response structure per https://elevenlabs.io/docs/api-reference/speech-to-text/convert (2026-10-01)",
+ "language_code": "zho",
+ "language_probability": 0.98,
+ "text": "今天我们用 Claude Opus 4.5 来搜索代码。编译的时候加上 -I 参数，告诉编译器头文件在哪里。这就是生成式软件工程。",
+ "words": [
+  {
+   "text": "今天",
+   "type": "word",
+   "start": 0.5,
+   "end": 0.94,
+   "logprob": -0.05
+  },
+  {
+   "text": "我们",
+   "type": "word",
+   "start": 1.02,
+   "end": 1.46,
+   "logprob": -0.05
+  },
+  {
+   "text": "用",
+   "type": "word",
+   "start": 1.54,
+   "end": 1.76,
+   "logprob": -0.05
+  },
+  {
+   "text": " ",
+   "type": "spacing",
+   "start": 1.84,
+   "end": 1.84,
+   "logprob": 0.0
+  },
+  {
+   "text": "Claude",
+   "type": "word",
+   "start": 1.84,
+   "end": 2.19,
+   "logprob": -0.05
+  },
+  {
+   "text": " ",
+   "type": "spacing",
+   "start": 2.27,
+   "end": 2.27,
+   "logprob": 0.0
+  },
+  {
+   "text": "Opus",
+   "type": "word",
+   "start": 2.27,
+   "end": 2.62,
+   "logprob": -0.05
+  },
+  {
+   "text": " ",
+   "type": "spacing",
+   "start": 2.7,
+   "end": 2.7,
+   "logprob": 0.0
+  },
+  {
+   "text": "4.5",
+   "type": "word",
+   "start": 2.7,
+   "end": 3.05,
+   "logprob": -0.05
+  },
+  {
+   "text": " ",
+   "type": "spacing",
+   "start": 3.13,
+   "end": 3.13,
+   "logprob": 0.0
+  },
+  {
+   "text": "来",
+   "type": "word",
+   "start": 3.13,
+   "end": 3.35,
+   "logprob": -0.05
+  },
+  {
+   "text": "搜索",
+   "type": "word",
+   "start": 3.43,
+   "end": 3.87,
+   "logprob": -0.05
+  },
+  {
+   "text": "代码。",
+   "type": "word",
+   "start": 3.95,
+   "end": 4.39,
+   "logprob": -0.05
+  },
+  {
+   "text": "编译",
+   "type": "word",
+   "start": 4.72,
+   "end": 5.16,
+   "logprob": -0.05
+  },
+  {
+   "text": "的",
+   "type": "word",
+   "start": 5.24,
+   "end": 5.46,
+   "logprob": -0.05
+  },
+  {
+   "text": "时候",
+   "type": "word",
+   "start": 5.54,
+   "end": 5.98,
+   "logprob": -0.05
+  },
+  {
+   "text": "加上",
+   "type": "word",
+   "start": 6.06,
+   "end": 6.5,
+   "logprob": -0.05
+  },
+  {
+   "text": " ",
+   "type": "spacing",
+   "start": 6.58,
+   "end": 6.58,
+   "logprob": 0.0
+  },
+  {
+   "text": "-I",
+   "type": "word",
+   "start": 6.58,
+   "end": 6.93,
+   "logprob": -0.05
+  },
+  {
+   "text": " ",
+   "type": "spacing",
+   "start": 7.01,
+   "end": 7.01,
+   "logprob": 0.0
+  },
+  {
+   "text": "参数，",
+   "type": "word",
+   "start": 7.01,
+   "end": 7.45,
+   "logprob": -0.05
+  },
+  {
+   "text": "告诉",
+   "type": "word",
+   "start": 7.53,
+   "end": 7.97,
+   "logprob": -0.05
+  },
+  {
+   "text": "编译器",
+   "type": "word",
+   "start": 8.05,
+   "end": 8.71,
+   "logprob": -0.05
+  },
+  {
+   "text": "头文件",
+   "type": "word",
+   "start": 8.79,
+   "end": 9.45,
+   "logprob": -0.05
+  },
+  {
+   "text": "在",
+   "type": "word",
+   "start": 9.53,
+   "end": 9.75,
+   "logprob": -0.05
+  },
+  {
+   "text": "哪里。",
+   "type": "word",
+   "start": 9.83,
+   "end": 10.27,
+   "logprob": -0.05
+  },
+  {
+   "text": "这",
+   "type": "word",
+   "start": 10.6,
+   "end": 10.82,
+   "logprob": -0.05
+  },
+  {
+   "text": "就是",
+   "type": "word",
+   "start": 10.9,
+   "end": 11.34,
+   "logprob": -0.05
+  },
+  {
+   "text": "生成式",
+   "type": "word",
+   "start": 11.42,
+   "end": 12.08,
+   "logprob": -0.05
+  },
+  {
+   "text": "软件",
+   "type": "word",
+   "start": 12.16,
+   "end": 12.6,
+   "logprob": -0.05
+  },
+  {
+   "text": "工程。",
+   "type": "word",
+   "start": 12.68,
+   "end": 13.12,
+   "logprob": -0.05
+  }
+ ]
+}

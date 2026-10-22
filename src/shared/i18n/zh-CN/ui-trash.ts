@@ -1,0 +1,21 @@
+/** UI copy of the trash page. */
+export const trash = {
+  title: "回收站",
+  hint: "回收站中的内容保留 {{days}} 天，到期自动彻底删除；在此期间媒体文件仍占用存储空间。",
+  empty: "回收站是空的",
+  emptyAll: "清空回收站",
+  emptyAllTitle: "清空回收站？",
+  emptyAllDescription: "将彻底删除回收站中的全部 {{count}} 条内容及其字幕、总结、笔记等产出物，无法恢复；本地原文件不会被删除。",
+  emptyAllPartial: "{{count}} 条未能删除，请稍后再试",
+  restore: "恢复",
+  restored: "已恢复「{{title}}」",
+  purge: "彻底删除",
+  purgeTitle: "彻底删除这条内容？",
+  purgeDescription: "将彻底删除「{{title}}」及其字幕、总结、笔记等全部产出物，无法恢复；本地原文件不会被删除。",
+  deletedAt: "删除于 {{date}}",
+  media: "媒体 {{size}}",
+  daysLeft: "{{days}} 天后彻底删除",
+  lessThanDay: "不到 1 天后彻底删除",
+  expired: "已到期，等待清理",
+  untitled: "未命名内容",
+} as const;

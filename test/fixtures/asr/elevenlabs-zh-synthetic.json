@@ -1,0 +1,387 @@
+{
+  "sanitized": true,
+ "_fixture": "synthetic; response structure per https://elevenlabs.io/docs/api-reference/speech-to-text/convert (2026-10-01)",
+ "language_code": "zho",
+ "language_probability": 0.98,
+ "text": "欢迎来到生成式软件工程。这门课我们要讨论的问题是当大语言模型已经能写出相当多的代码，程序员的工作会变成什么样子以及我们应该怎样重新组织软件开发的过程好我们先看第一个例子这个例子很简单。",
+ "words": [
+  {
+   "text": "欢迎",
+   "type": "word",
+   "start": 0.5,
+   "end": 0.94,
+   "logprob": -0.05
+  },
+  {
+   "text": "来到",
+   "type": "word",
+   "start": 1.02,
+   "end": 1.46,
+   "logprob": -0.05
+  },
+  {
+   "text": "生成式",
+   "type": "word",
+   "start": 1.54,
+   "end": 2.2,
+   "logprob": -0.05
+  },
+  {
+   "text": "软件",
+   "type": "word",
+   "start": 2.28,
+   "end": 2.72,
+   "logprob": -0.05
+  },
+  {
+   "text": "工程。",
+   "type": "word",
+   "start": 2.8,
+   "end": 3.24,
+   "logprob": -0.05
+  },
+  {
+   "text": "这",
+   "type": "word",
+   "start": 3.57,
+   "end": 3.79,
+   "logprob": -0.05
+  },
+  {
+   "text": "门",
+   "type": "word",
+   "start": 3.87,
+   "end": 4.09,
+   "logprob": -0.05
+  },
+  {
+   "text": "课",
+   "type": "word",
+   "start": 4.17,
+   "end": 4.39,
+   "logprob": -0.05
+  },
+  {
+   "text": "我们",
+   "type": "word",
+   "start": 4.47,
+   "end": 4.91,
+   "logprob": -0.05
+  },
+  {
+   "text": "要",
+   "type": "word",
+   "start": 4.99,
+   "end": 5.21,
+   "logprob": -0.05
+  },
+  {
+   "text": "讨论",
+   "type": "word",
+   "start": 5.29,
+   "end": 5.73,
+   "logprob": -0.05
+  },
+  {
+   "text": "的",
+   "type": "word",
+   "start": 5.81,
+   "end": 6.03,
+   "logprob": -0.05
+  },
+  {
+   "text": "问题",
+   "type": "word",
+   "start": 6.11,
+   "end": 6.55,
+   "logprob": -0.05
+  },
+  {
+   "text": "是",
+   "type": "word",
+   "start": 6.63,
+   "end": 6.85,
+   "logprob": -0.05
+  },
+  {
+   "text": "当",
+   "type": "word",
+   "start": 6.93,
+   "end": 7.15,
+   "logprob": -0.05
+  },
+  {
+   "text": "大",
+   "type": "word",
+   "start": 7.23,
+   "end": 7.45,
+   "logprob": -0.05
+  },
+  {
+   "text": "语言",
+   "type": "word",
+   "start": 7.53,
+   "end": 7.97,
+   "logprob": -0.05
+  },
+  {
+   "text": "模型",
+   "type": "word",
+   "start": 8.05,
+   "end": 8.49,
+   "logprob": -0.05
+  },
+  {
+   "text": "已经",
+   "type": "word",
+   "start": 8.57,
+   "end": 9.01,
+   "logprob": -0.05
+  },
+  {
+   "text": "能",
+   "type": "word",
+   "start": 9.09,
+   "end": 9.31,
+   "logprob": -0.05
+  },
+  {
+   "text": "写",
+   "type": "word",
+   "start": 9.39,
+   "end": 9.61,
+   "logprob": -0.05
+  },
+  {
+   "text": "出",
+   "type": "word",
+   "start": 9.69,
+   "end": 9.91,
+   "logprob": -0.05
+  },
+  {
+   "text": "相当",
+   "type": "word",
+   "start": 9.99,
+   "end": 10.43,
+   "logprob": -0.05
+  },
+  {
+   "text": "多",
+   "type": "word",
+   "start": 10.51,
+   "end": 10.73,
+   "logprob": -0.05
+  },
+  {
+   "text": "的",
+   "type": "word",
+   "start": 10.81,
+   "end": 11.03,
+   "logprob": -0.05
+  },
+  {
+   "text": "代码，",
+   "type": "word",
+   "start": 11.11,
+   "end": 11.55,
+   "logprob": -0.05
+  },
+  {
+   "text": "程序员",
+   "type": "word",
+   "start": 11.63,
+   "end": 12.29,
+   "logprob": -0.05
+  },
+  {
+   "text": "的",
+   "type": "word",
+   "start": 12.37,
+   "end": 12.59,
+   "logprob": -0.05
+  },
+  {
+   "text": "工作",
+   "type": "word",
+   "start": 12.67,
+   "end": 13.11,
+   "logprob": -0.05
+  },
+  {
+   "text": "会",
+   "type": "word",
+   "start": 13.19,
+   "end": 13.41,
+   "logprob": -0.05
+  },
+  {
+   "text": "变成",
+   "type": "word",
+   "start": 13.49,
+   "end": 13.93,
+   "logprob": -0.05
+  },
+  {
+   "text": "什么",
+   "type": "word",
+   "start": 14.01,
+   "end": 14.45,
+   "logprob": -0.05
+  },
+  {
+   "text": "样子",
+   "type": "word",
+   "start": 14.53,
+   "end": 14.97,
+   "logprob": -0.05
+  },
+  {
+   "text": "以及",
+   "type": "word",
+   "start": 15.05,
+   "end": 15.49,
+   "logprob": -0.05
+  },
+  {
+   "text": "我们",
+   "type": "word",
+   "start": 15.57,
+   "end": 16.01,
+   "logprob": -0.05
+  },
+  {
+   "text": "应该",
+   "type": "word",
+   "start": 16.09,
+   "end": 16.53,
+   "logprob": -0.05
+  },
+  {
+   "text": "怎样",
+   "type": "word",
+   "start": 16.61,
+   "end": 17.05,
+   "logprob": -0.05
+  },
+  {
+   "text": "重新",
+   "type": "word",
+   "start": 17.13,
+   "end": 17.57,
+   "logprob": -0.05
+  },
+  {
+   "text": "组织",
+   "type": "word",
+   "start": 17.65,
+   "end": 18.09,
+   "logprob": -0.05
+  },
+  {
+   "text": "软件",
+   "type": "word",
+   "start": 18.17,
+   "end": 18.61,
+   "logprob": -0.05
+  },
+  {
+   "text": "开发",
+   "type": "word",
+   "start": 18.69,
+   "end": 19.13,
+   "logprob": -0.05
+  },
+  {
+   "text": "的",
+   "type": "word",
+   "start": 19.21,
+   "end": 19.43,
+   "logprob": -0.05
+  },
+  {
+   "text": "过程",
+   "type": "word",
+   "start": 19.51,
+   "end": 19.95,
+   "logprob": -0.05
+  },
+  {
+   "text": "好",
+   "type": "word",
+   "start": 20.28,
+   "end": 20.5,
+   "logprob": -0.05
+  },
+  {
+   "text": "我们",
+   "type": "word",
+   "start": 20.58,
+   "end": 21.02,
+   "logprob": -0.05
+  },
+  {
+   "text": "先",
+   "type": "word",
+   "start": 21.1,
+   "end": 21.32,
+   "logprob": -0.05
+  },
+  {
+   "text": "看",
+   "type": "word",
+   "start": 21.4,
+   "end": 21.62,
+   "logprob": -0.05
+  },
+  {
+   "text": "第一个",
+   "type": "word",
+   "start": 21.7,
+   "end": 22.36,
+   "logprob": -0.05
+  },
+  {
+   "text": "例子",
+   "type": "word",
+   "start": 22.44,
+   "end": 22.88,
+   "logprob": -0.05
+  },
+  {
+   "text": "这",
+   "type": "word",
+   "start": 24.16,
+   "end": 24.38,
+   "logprob": -0.05
+  },
+  {
+   "text": "个",
+   "type": "word",
+   "start": 24.46,
+   "end": 24.68,
+   "logprob": -0.05
+  },
+  {
+   "text": "例子",
+   "type": "word",
+   "start": 24.76,
+   "end": 25.2,
+   "logprob": -0.05
+  },
+  {
+   "text": "很",
+   "type": "word",
+   "start": 25.28,
+   "end": 25.5,
+   "logprob": -0.05
+  },
+  {
+   "text": "简单。",
+   "type": "word",
+   "start": 25.58,
+   "end": 26.02,
+   "logprob": -0.05
+  }
+ ]
+}

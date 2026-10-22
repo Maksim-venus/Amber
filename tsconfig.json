@@ -1,0 +1,5 @@
+{
+  // Solution file for editors; `pnpm typecheck` checks each project on its own.
+  "files": [],
+  "references": [{ "path": "./tsconfig.server.json" }, { "path": "./tsconfig.web.json" }]
+}

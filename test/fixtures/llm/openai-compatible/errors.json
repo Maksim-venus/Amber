@@ -1,0 +1,19 @@
+{
+  "sanitized": true,
+  "_fixture": "Error answers in the documented Chat Completions error shape { error: { message, type, param, code } } (OpenAI and DeepSeek API references, read 2026-10-01). Messages are synthetic.",
+  "auth": { "status": 401, "body": { "error": { "message": "Incorrect API key provided.", "type": "invalid_request_error", "param": null, "code": "invalid_api_key" } } },
+  "forbidden": { "status": 403, "body": { "error": { "message": "Project does not have access to this model.", "type": "invalid_request_error", "param": null, "code": null } } },
+  "insufficientBalance": { "status": 402, "body": { "error": { "message": "Insufficient Balance", "type": "unknown_error", "param": null, "code": "invalid_request_error" } } },
+  "insufficientQuota": { "status": 429, "body": { "error": { "message": "You exceeded your current quota, please check your plan and billing details.", "type": "insufficient_quota", "param": null, "code": "insufficient_quota" } } },
+  "contextLength": { "status": 400, "body": { "error": { "message": "This model's maximum context length is 8192 tokens. However, your messages resulted in 9000 tokens.", "type": "invalid_request_error", "param": "messages", "code": "context_length_exceeded" } } },
+  "modelNotFound": { "status": 404, "body": { "error": { "message": "The model `model-under-test` does not exist or you do not have access to it.", "type": "invalid_request_error", "param": null, "code": "model_not_found" } } },
+  "rateLimited": { "status": 429, "body": { "error": { "message": "Rate limit reached for requests.", "type": "requests", "param": null, "code": "rate_limit_exceeded" } } },
+  "serverError": { "status": 500, "body": { "error": { "message": "The server had an error while processing your request.", "type": "server_error", "param": null, "code": null } } },
+  "badRequest": { "status": 400, "body": { "error": { "message": "Invalid value for 'messages[0].role'.", "type": "invalid_request_error", "param": "messages", "code": null } } },
+  "maxTokensRejected": { "status": 400, "body": { "error": { "message": "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.", "type": "invalid_request_error", "param": "max_tokens", "code": "unsupported_parameter" } } },
+  "responseFormatUnsupported": { "status": 400, "body": { "error": { "message": "Invalid parameter: 'response_format' of type 'json_schema' is not supported with this model.", "type": "invalid_request_error", "param": "response_format", "code": null } } },
+  "toolsUnsupported": { "status": 400, "body": { "error": { "message": "This model does not support tools.", "type": "invalid_request_error", "param": null, "code": null } } },
+  "streamUnsupported": { "status": 400, "body": { "error": { "message": "Unsupported value: 'stream' does not support true with this model.", "type": "invalid_request_error", "param": "stream", "code": "unsupported_value" } } },
+  "relayQuota": { "status": 403, "body": { "error": { "message": "用户额度不足, 剩余额度: 0", "type": "new_api_error", "code": "insufficient_user_quota" } } },
+  "inStream": { "status": 200, "body": { "error": { "message": "The server had an error while processing your request.", "type": "server_error", "param": null, "code": null } } }
+}

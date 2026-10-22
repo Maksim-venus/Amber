@@ -1,0 +1,86 @@
+{
+  "sanitized": true,
+  "_fixture": "Synthetic Chinese result file following the documented structure of the Alibaba Cloud Model Studio recorded-file recognition HTTP API (read 2026-10-16): properties, transcripts[].sentences[].words[] with millisecond times and separate punctuation. Timing and text are invented.",
+  "file_url": "oss://dashscope-instant/example/audio.flac",
+  "properties": {
+    "audio_format": "flac",
+    "channels": [
+      0
+    ],
+    "original_sampling_rate": 16000,
+    "original_duration_in_milliseconds": 5200
+  },
+  "transcripts": [
+    {
+      "channel_id": 0,
+      "content_duration_in_milliseconds": 4800,
+      "text": "欢迎来到生成式软件工程。今天我们讲提示词。",
+      "sentences": [
+        {
+          "begin_time": 100,
+          "end_time": 2300,
+          "text": "欢迎来到生成式软件工程。",
+          "sentence_id": 1,
+          "words": [
+            {
+              "begin_time": 100,
+              "end_time": 600,
+              "text": "欢迎",
+              "punctuation": ""
+            },
+            {
+              "begin_time": 600,
+              "end_time": 1000,
+              "text": "来到",
+              "punctuation": ""
+            },
+            {
+              "begin_time": 1000,
+              "end_time": 1600,
+              "text": "生成式",
+              "punctuation": ""
+            },
+            {
+              "begin_time": 1600,
+              "end_time": 2300,
+              "text": "软件工程",
+              "punctuation": "。"
+            }
+          ]
+        },
+        {
+          "begin_time": 2600,
+          "end_time": 4900,
+          "text": "今天我们讲提示词。",
+          "sentence_id": 2,
+          "words": [
+            {
+              "begin_time": 2600,
+              "end_time": 3100,
+              "text": "今天",
+              "punctuation": ""
+            },
+            {
+              "begin_time": 3100,
+              "end_time": 3600,
+              "text": "我们",
+              "punctuation": ""
+            },
+            {
+              "begin_time": 3600,
+              "end_time": 3900,
+              "text": "讲",
+              "punctuation": ""
+            },
+            {
+              "begin_time": 3900,
+              "end_time": 4900,
+              "text": "提示词",
+              "punctuation": "。"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

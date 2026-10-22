@@ -1,0 +1,12 @@
+{
+  // Server, tooling and their tests: Node types and no DOM, so browser globals cannot
+  // creep into code that runs in the sidecar or the container. The server e2e specs drive
+  // a real backend and seed its database from Node, so they belong here too.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src/server", "src/shared", "src/tooling", "test", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"],
+  "exclude": ["node_modules", "dist", "test/guards/fixtures", "test/web", "test/e2e/*.ts", "test/fixtures/web"]
+}

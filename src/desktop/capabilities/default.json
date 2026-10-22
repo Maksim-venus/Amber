@@ -1,0 +1,39 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Main window only: sidecar handshake and diagnostics, event listening, app version, updater, the shell's file, cache-directory (pick, create-and-allow, open folder), bilibili login and player-session clearing, master-key commands, backup destination / inspection / originals directory / restore, update-install registration, export saving (save dialog plus writing the file it returned), saving burn products and cached media, notifications, opening http(s) links and making the window fullscreen when the page enters fullscreen. Remote content (iframes, the bilibili login window) gets no IPC.",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:default",
+    "core:app:allow-version",
+    "updater:default",
+    "core:window:allow-set-fullscreen",
+    "allow-sidecar-endpoint",
+    "allow-shell-diagnostics",
+    "allow-pick-local-file",
+    "allow-pick-relink-file",
+    "allow-save-burn-output",
+    "allow-save-cached-media",
+    "allow-pick-cache-dir",
+    "allow-allow-cache-dir",
+    "allow-open-folder",
+    "allow-open-bilibili-login",
+    "allow-clear-bilibili-player-session",
+    "allow-rotate-master-key",
+    "allow-pick-backup-destination",
+    "allow-inspect-backup",
+    "allow-pick-restore-originals-dir",
+    "allow-restore-backup",
+    "allow-begin-update-install",
+    "allow-end-update-install",
+    "dialog:allow-save",
+    "fs:allow-write-file",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://*" }, { "url": "http://*" }]
+    },
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-notify"
+  ]
+}

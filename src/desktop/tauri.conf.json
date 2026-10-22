@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Amber",
+  "version": "../../package.json",
+  "identifier": "com.lifefindsitsway.amber",
+  "build": {
+    "frontendDist": "../../dist/web"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Amber",
+        "width": 1200,
+        "height": 900,
+        "zoomHotkeysEnabled": true,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,ElasticOverscroll"
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' https://www.youtube.com",
+        "frame-src": "https://www.youtube.com https://player.bilibili.com",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:*",
+        "img-src": "'self' data: https:",
+        "style-src": "'self' 'unsafe-inline'",
+        "media-src": "asset: http://asset.localhost"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/media/**"]
+      }
+    },
+    "appDirectoriesOverride": {
+      "data": "$DATA/Amber",
+      "log": "$DATA/Amber/logs"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "externalBin": ["../../dist/sidecar/node"],
+    "resources": {
+      "../../dist/sidecar/server/": "server/",
+      "../../dist/sidecar/bin/": "bin/",
+      "../../dist/sidecar/fonts/": "fonts/",
+      "../../dist/sidecar/legal/": "legal/"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["SimpChinese", "English"],
+        "installerHooks": "gen/uninstall.nsh",
+        "template": "gen/installer.nsi"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNBNDBEOTkzODhDQkQwQUIKUldTcjBNdUlrOWxBT2prS1pZRlZZVWsyT0xWK1hveDVIRy8vZE9VdWVyZStXeWZJSzZkMWNkelQK",
+      "endpoints": []
+    }
+  }
+}

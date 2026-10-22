@@ -1,0 +1,136 @@
+{
+  "sanitized": true,
+  "_fixture": "Synthetic error answers in the documented Messages API error shape (platform.claude.com/docs/en/api/errors, read 2026-10-01); messages invented.",
+  "answers": {
+    "authentication": [
+      401,
+      {
+        "type": "error",
+        "error": {
+          "type": "authentication_error",
+          "message": "invalid x-api-key"
+        }
+      }
+    ],
+    "permission": [
+      403,
+      {
+        "type": "error",
+        "error": {
+          "type": "permission_error",
+          "message": "Your API key does not have permission to use the specified resource."
+        }
+      }
+    ],
+    "billing": [
+      400,
+      {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "Your credit balance is too low to access the Anthropic API."
+        }
+      }
+    ],
+    "payment": [
+      402,
+      {
+        "type": "error",
+        "error": {
+          "type": "billing_error",
+          "message": "Billing issue."
+        }
+      }
+    ],
+    "not_found": [
+      404,
+      {
+        "type": "error",
+        "error": {
+          "type": "not_found_error",
+          "message": "model: model-under-test"
+        }
+      }
+    ],
+    "rate_limit": [
+      429,
+      {
+        "type": "error",
+        "error": {
+          "type": "rate_limit_error",
+          "message": "Number of request tokens has exceeded your per-minute rate limit"
+        }
+      }
+    ],
+    "overloaded": [
+      529,
+      {
+        "type": "error",
+        "error": {
+          "type": "overloaded_error",
+          "message": "Overloaded"
+        }
+      }
+    ],
+    "server": [
+      500,
+      {
+        "type": "error",
+        "error": {
+          "type": "api_error",
+          "message": "Internal server error"
+        }
+      }
+    ],
+    "context_length": [
+      400,
+      {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "prompt is too long: 215000 tokens > 200000 maximum"
+        }
+      }
+    ],
+    "invalid_request": [
+      400,
+      {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "messages: roles must alternate between \"user\" and \"assistant\""
+        }
+      }
+    ],
+    "unsupported_output_config": [
+      400,
+      {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "output_config.format: json_schema is not supported for this model"
+        }
+      }
+    ],
+    "unsupported_tools": [
+      400,
+      {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "tools: Extra inputs are not permitted"
+        }
+      }
+    ],
+    "unsupported_stream": [
+      400,
+      {
+        "type": "error",
+        "error": {
+          "type": "invalid_request_error",
+          "message": "stream: streaming is not supported by this endpoint"
+        }
+      }
+    ]
+  }
+}

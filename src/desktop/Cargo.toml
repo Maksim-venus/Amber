@@ -1,0 +1,43 @@
+[package]
+name = "amber"
+# No `version`: package.json is the single version source and Tauri reads it through
+# tauri.conf.json; Cargo defaults an absent version to 0.0.0 (check-versions enforces this).
+edition = "2024"
+license = "AGPL-3.0-only"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "=2.7.0", features = [] }
+
+[dependencies]
+# `protocol-asset` serves local media to `<video>` through the asset protocol.
+tauri = { version = "=2.12.0", features = ["protocol-asset"] }
+# Required by the code `tauri::generate_context!` emits for plugin configuration
+# (`::serde_json::Value` literals); the same version tauri already depends on.
+serde_json = "=1.0.151"
+# Derives for command arguments and results; the same version tauri already depends on.
+serde = { version = "=1.0.229", features = ["derive"] }
+tauri-plugin-dialog = "=2.8.1"
+tauri-plugin-fs = "=2.6.0"
+tauri-plugin-notification = "=2.5.1"
+tauri-plugin-opener = "=2.7.0"
+# `protocol-asset` makes it persist the asset protocol scope, not only the fs scope.
+tauri-plugin-persisted-scope = { version = "=2.4.0", features = ["protocol-asset"] }
+tauri-plugin-single-instance = "=2.5.0"
+tauri-plugin-updater = "=2.13.0"
+hmac = "=0.13.0"
+sha2 = "=0.11.0"
+# `v1` is the crate's one-store-per-platform mode; on Windows it compiles only the
+# Credential Manager store (the other stores are target-gated off).
+keyring = { version = "=4.2.0", default-features = false, features = ["v1"] }
+
+[target.'cfg(windows)'.dependencies]
+# WebView2's cookie manager, used directly because wry's cookie API drops the leading dot of
+# `Domain` and so can neither write nor delete a domain cookie; the same versions tauri and
+# wry already depend on.
+webview2-com = "=0.39.1"
+windows-core = "=0.62.2"
+
+[profile.release]
+codegen-units = 1
+lto = true

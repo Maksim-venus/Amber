@@ -1,0 +1,10 @@
+{
+  // The SPA and its tests: DOM types and Vite's client types, no Node types.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"]
+  },
+  "include": ["src/web", "src/shared", "test/web", "test/e2e", "test/fixtures/web"],
+  "exclude": ["node_modules", "dist", "test/e2e/server"]
+}

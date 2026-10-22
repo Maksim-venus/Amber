@@ -1,0 +1,30 @@
+{
+  "source": {
+    "sanitized": true,
+    "url": "https://passport.bilibili.com/x/passport-login/web/qrcode",
+    "recordedAt": "2026-10-02",
+    "recordedWith": "Amber BilibiliQrLogin over the direct client; a real scan and confirmation"
+  },
+  "answer": {
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "OK",
+      "ttl": 1,
+      "data": {
+        "url": "<redacted>",
+        "refresh_token": "<redacted>",
+        "timestamp": 0,
+        "code": 0,
+        "message": ""
+      }
+    },
+    "setCookies": [
+      "SESSDATA=<redacted>; Path=/; Domain=bilibili.com; Expires=Wed, 31 Mar 2027 16:07:22 GMT; HttpOnly; Secure; SameSite=None",
+      "bili_jct=<redacted>; Path=/; Domain=bilibili.com; Expires=Wed, 31 Mar 2027 16:07:22 GMT; Secure; SameSite=None",
+      "DedeUserID=<redacted>; Path=/; Domain=bilibili.com; Expires=Wed, 31 Mar 2027 16:07:22 GMT; Secure; SameSite=None",
+      "DedeUserID__ckMd5=<redacted>; Path=/; Domain=bilibili.com; Expires=Wed, 31 Mar 2027 16:07:22 GMT; Secure; SameSite=None",
+      "sid=<redacted>; Path=/; Domain=bilibili.com; Expires=Wed, 31 Mar 2027 16:07:22 GMT; Secure; SameSite=None"
+    ]
+  }
+}

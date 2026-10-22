@@ -1,0 +1,7 @@
+[package]
+name = "amber-desktop"
+version = "0.0.0"
+
+[dependencies]
+tauri = "2"
+axum = "0.8"

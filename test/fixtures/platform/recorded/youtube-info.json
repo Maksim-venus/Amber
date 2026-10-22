@@ -1,0 +1,157 @@
+{
+  "source": {
+    "sanitized": true,
+    "url": "https://www.youtube.com/watch?v=UF8uR6Z6KLc",
+    "license": "未核实为 Creative Commons（yt-dlp license = null）；仅作测试结构样本，不含简介与字幕正文",
+    "attribution": "Stanford，YouTube 频道 UC-EnprmCZ3OXyAoG7vjVNCA，“Steve Jobs' 2005 Stanford Commencement Address”",
+    "recordedAt": "2026-10-01",
+    "recordedWith": "yt-dlp 2026.08.19 as a guest; fields the adapter reads, URLs cut at the query string (path-encoded manifest URLs after the endpoint), captions trimmed to the vtt entry and to five automatic languages"
+  },
+  "info": {
+    "id": "UF8uR6Z6KLc",
+    "title": "Steve Jobs' 2005 Stanford Commencement Address",
+    "duration": 904,
+    "thumbnail": "https://i.ytimg.com/vi/UF8uR6Z6KLc/hqdefault.jpg?<redacted>",
+    "timestamp": 1204939040,
+    "release_timestamp": null,
+    "channel": "Stanford",
+    "channel_id": "UC-EnprmCZ3OXyAoG7vjVNCA",
+    "language": "en",
+    "chapters": [
+      {
+        "start_time": 0,
+        "title": "Intro",
+        "end_time": 110
+      },
+      {
+        "start_time": 110,
+        "title": "College",
+        "end_time": 338
+      },
+      {
+        "start_time": 338,
+        "title": "Love Loss",
+        "end_time": 544
+      },
+      {
+        "start_time": 544,
+        "title": "Death",
+        "end_time": 788
+      },
+      {
+        "start_time": 788,
+        "title": "The Whole Earth Catalog",
+        "end_time": 904
+      }
+    ],
+    "extractor": "youtube",
+    "license": null,
+    "subtitles": {
+      "ar": [
+        {
+          "ext": "vtt",
+          "name": "Arabic",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "en-eEY6OEpapPo": [
+        {
+          "ext": "vtt",
+          "name": "English - English",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "it": [
+        {
+          "ext": "vtt",
+          "name": "Italian",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "ja": [
+        {
+          "ext": "vtt",
+          "name": "Japanese",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "km": [
+        {
+          "ext": "vtt",
+          "name": "Khmer",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "pt-BR": [
+        {
+          "ext": "vtt",
+          "name": "Portuguese (Brazil)",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "es-y1SAwy5xd4g": [
+        {
+          "ext": "vtt",
+          "name": "Spanish - Spanish",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "es-ES": [
+        {
+          "ext": "vtt",
+          "name": "Spanish (Spain)",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ]
+    },
+    "automatic_captions": {
+      "en-orig": [
+        {
+          "ext": "vtt",
+          "name": "English (Original)",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "en": [
+        {
+          "ext": "vtt",
+          "url": "https://manifest.googlevideo.com/api/manifest/hls_timedtext_playlist/<redacted>"
+        },
+        {
+          "ext": "vtt",
+          "name": "English",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "zh-Hans": [
+        {
+          "ext": "vtt",
+          "name": "Chinese (Simplified)",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "ja": [
+        {
+          "ext": "vtt",
+          "url": "https://manifest.googlevideo.com/api/manifest/hls_timedtext_playlist/<redacted>"
+        },
+        {
+          "ext": "vtt",
+          "name": "Japanese",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ],
+      "es": [
+        {
+          "ext": "vtt",
+          "url": "https://manifest.googlevideo.com/api/manifest/hls_timedtext_playlist/<redacted>"
+        },
+        {
+          "ext": "vtt",
+          "name": "Spanish",
+          "url": "https://www.youtube.com/api/timedtext?<redacted>"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "source": {
+    "sanitized": true,
+    "url": "https://passport.bilibili.com/x/passport-login/web/qrcode",
+    "recordedAt": "2026-10-02",
+    "recordedWith": "Amber BilibiliQrLogin over the direct client; a code left unscanned",
+    "observedLifetimeMs": 183077
+  },
+  "answer": {
+    "status": 200,
+    "body": {
+      "code": 0,
+      "message": "OK",
+      "ttl": 1,
+      "data": {
+        "url": "<redacted>",
+        "qrcode_key": "<redacted>"
+      }
+    }
+  }
+}

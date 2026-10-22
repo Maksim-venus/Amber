@@ -1,0 +1,14 @@
+data: {"id":"chatcmpl-synthetic","object":"chat.completion.chunk","created":0,"model":"model-under-test","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-synthetic","object":"chat.completion.chunk","created":0,"model":"model-under-test","choices":[{"index":0,"delta":{"content":"Amber 把封存"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-synthetic","object":"chat.completion.chunk","created":0,"model":"model-under-test","choices":[{"index":0,"delta":{"content":"在音视频里的知识"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-synthetic","object":"chat.completion.chunk","created":0,"model":"model-under-test","choices":[{"index":0,"delta":{"content":"取出来，让它重新活过来。"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-synthetic","object":"chat.completion.chunk","created":0,"model":"model-under-test","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: {"id":"chatcmpl-synthetic","object":"chat.completion.chunk","created":0,"model":"model-under-test","choices":[],"usage":{"prompt_tokens":42,"completion_tokens":23,"total_tokens":65}}
+
+data: [DONE]
+

@@ -1,0 +1,16 @@
+{
+  "sanitized": true,
+  "id": "chatcmpl-0001",
+  "object": "chat.completion",
+  "created": 1790000000,
+  "model": "model-under-test",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "Amber 把封存在音视频里的知识取出来，让它重新活过来。", "refusal": null },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 42, "completion_tokens": 23, "total_tokens": 65, "prompt_cache_hit_tokens": 0, "prompt_cache_miss_tokens": 42 }
+}

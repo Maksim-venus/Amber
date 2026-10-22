@@ -1,0 +1,19 @@
+name: allowed
+on: push
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runtime assets through the repository's own token
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OTHER: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download runtime-assets --pattern SHA256SUMS
+      - run: pnpm test
+      - name: Only the last line here is a violation
+        run: |
+          echo "secretsless"
+          pnpm tauri build --no-bundle

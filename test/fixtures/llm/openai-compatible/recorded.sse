@@ -1,0 +1,8 @@
+data: {"id":"<redacted>","object":"chat.completion.chunk","created":0,"model":"model-under-test","system_fingerprint":"<redacted>","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"logprobs":null}]}
+
+data: {"id":"<redacted>","object":"chat.completion.chunk","created":0,"model":"model-under-test","system_fingerprint":"<redacted>","choices":[{"index":0,"delta":{"content":"OK"},"finish_reason":null,"logprobs":null}]}
+
+data: {"id":"<redacted>","object":"chat.completion.chunk","created":0,"model":"model-under-test","system_fingerprint":"<redacted>","choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}
+
+data: [DONE]
+

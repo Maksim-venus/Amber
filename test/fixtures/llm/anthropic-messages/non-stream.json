@@ -1,0 +1,23 @@
+{
+  "sanitized": true,
+  "id": "msg_<redacted>",
+  "type": "message",
+  "role": "assistant",
+  "model": "model-under-test",
+  "content": [
+    {
+      "type": "text",
+      "text": "Amber 把封存在音视频里的知识取出来，"
+    },
+    {
+      "type": "text",
+      "text": "让它重新活过来。"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 42,
+    "output_tokens": 23
+  }
+}

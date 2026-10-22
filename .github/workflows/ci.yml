@@ -1,0 +1,163 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: typecheck (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Release baseline Node and the lower bound of package.json engines.
+        node: ["24.21.0", "22.18.0"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      # Corepack bundled with older Node 22.x cannot fetch pnpm 12 (released as a native binary),
+      # so both matrix legs use the same pinned Corepack before enabling it.
+      - run: npm install -g corepack@0.34.6
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      - run: pnpm typecheck
+      # package.json is the single version source; the desktop manifests must agree.
+      - run: pnpm check:versions
+
+  # ffmpeg / ffprobe for the media tests, from the pinned Amber Runtime Assets release of the
+  # public resource repository lifefindsitsway/amber-runtime-assets, downloaded with the
+  # read-only workflow token, never from the system package manager. setup:tools accepts the
+  # download only if the SHA256 of its SHA256SUMS is the one pinned in the source tree, then
+  # checks every archive against that list before extraction. A test that misses a tool fails
+  # instead of being skipped.
+  binaries:
+    name: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.21.0"
+      - run: npm install -g corepack@0.34.6
+      - run: corepack enable
+      - name: Download runtime assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release download runtime-assets-2026.10.21 --repo lifefindsitsway/amber-runtime-assets --dir runtime-assets
+          --pattern SHA256SUMS --pattern ffmpeg-n9.0.2-3-ga5923073bf-linux64-gpl-9.0.tar.xz
+          --pattern yt-dlp_linux --pattern deno-x86_64-unknown-linux-gnu.zip
+          --pattern 18_NotoSansSC.zip --pattern OFL.txt
+      - run: pnpm setup:tools --assets runtime-assets
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: amber-tools-linux
+          path: |
+            .amber-tools/bin/
+            .amber-tools/fonts/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  test:
+    name: test (node ${{ matrix.node }})
+    needs: binaries
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Release baseline Node and the lower bound of package.json engines.
+        node: ["24.21.0", "22.18.0"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      # Corepack bundled with older Node 22.x cannot fetch pnpm 12 (released as a native binary),
+      # so both matrix legs use the same pinned Corepack before enabling it.
+      - run: npm install -g corepack@0.34.6
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: amber-tools-linux
+          path: .amber-tools
+      # Artifacts do not keep file modes.
+      - run: chmod +x .amber-tools/bin/*
+      - run: pnpm test
+
+  guards:
+    name: guards (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Release baseline Node and the lower bound of package.json engines.
+        node: ["24.21.0", "22.18.0"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      # Corepack bundled with older Node 22.x cannot fetch pnpm 12 (released as a native binary),
+      # so both matrix legs use the same pinned Corepack before enabling it.
+      - run: npm install -g corepack@0.34.6
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      - run: pnpm test:guards
+
+  # Deterministic browser smoke: the production build under `vite preview`
+  # with mocked `/api`, and the same build served by a real server-mode backend on a
+  # temporary data directory; one Node, the release baseline.
+  # Browser smoke on the release baseline Node only. ffmpeg from the
+  # `binaries` job generates the clip of the local <video> player check.
+  e2e:
+    name: e2e
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.21.0"
+      - run: npm install -g corepack@0.34.6
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: amber-tools-linux
+          path: .amber-tools
+      # Artifacts do not keep file modes.
+      - run: chmod +x .amber-tools/bin/*
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
