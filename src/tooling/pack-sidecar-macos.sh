@@ -77,8 +77,9 @@ for tool in ffmpeg ffprobe; do
 done
 
 # fonts (from the upstream pinned Runtime Assets release)
-gh release download "$RUNTIME_ASSETS" --repo lifefindsitsway/amber-runtime-assets --dir "$DL" \
-  --pattern 18_NotoSansSC.zip --pattern OFL.txt --skip-existing
+RA_URL="https://github.com/lifefindsitsway/amber-runtime-assets/releases/download/$RUNTIME_ASSETS"
+fetch "$RA_URL/18_NotoSansSC.zip" "$DL/18_NotoSansSC.zip" 4d107c09ada479d3e48b6e78c83835773cbd9214bf6e12cdb7b60f8e068292ec
+fetch "$RA_URL/OFL.txt" "$DL/OFL.txt" 6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2
 unzip -o -q -j "$DL/18_NotoSansSC.zip" NotoSansSC-Regular.otf -d "$OUT/fonts"
 cp "$DL/OFL.txt" "$OUT/fonts/OFL.txt"
 
