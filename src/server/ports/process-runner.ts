@@ -51,6 +51,8 @@ export const CHILD_ENV_ALLOWLIST = [
   "TEMP",
   "TMP",
   "TMPDIR",
+  // macOS / Unix: yt-dlp finds browser profiles under ~/Library via HOME.
+  "HOME",
   "LANG",
   "LC_ALL",
   "HTTP_PROXY",

@@ -42,7 +42,12 @@ const FILE_GRANT_KEY_BYTES: usize = 32;
 
 /// Variables passed through from the shell's own environment; nothing else is inherited.
 /// `APPDATA` / `LOCALAPPDATA` locate browser profiles for yt-dlp `--cookies-from-browser`.
-const PASSTHROUGH_ENV: [&str; 6] = ["SystemRoot", "WINDIR", "TEMP", "TMP", "APPDATA", "LOCALAPPDATA"];
+#[cfg(windows)]
+const PASSTHROUGH_ENV: &[&str] = &["SystemRoot", "WINDIR", "TEMP", "TMP", "APPDATA", "LOCALAPPDATA"];
+/// macOS / Unix: HOME locates browser profiles (~/Library/...) for yt-dlp
+/// `--cookies-from-browser`; TMPDIR is the per-user temp directory.
+#[cfg(not(windows))]
+const PASSTHROUGH_ENV: &[&str] = &["HOME", "USER", "TMPDIR", "LANG", "LC_ALL"];
 
 /// Emitted after every successful handshake.
 pub const EVENT_READY: &str = "sidecar://ready";
