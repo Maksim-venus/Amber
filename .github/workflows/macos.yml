@@ -1,0 +1,99 @@
+name: macos-build
+
+# Fork-only: builds the unofficial macOS (Apple Silicon) app. Upstream ships Windows only.
+on:
+  workflow_dispatch:
+  push:
+    branches: [macos-build]
+    tags: ["v*-macos*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write # attach assets to the matching release on tag builds
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-14
+            triple: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.21.0"
+      - run: npm install -g corepack@0.34.6 && corepack enable
+      - run: pnpm install --frozen-lockfile
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      - name: Rust toolchain
+        run: rustup update stable && rustup default stable && rustup target add ${{ matrix.triple }} && rustc --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/desktop
+      - run: pnpm build
+      - name: Check CORS origin fix is in the server bundle
+        run: grep -q 'tauri://localhost' dist/server/server.js
+      - name: Pack macOS sidecar (Node, yt-dlp, Deno, FFmpeg, fonts; SHA256-verified)
+        run: bash src/tooling/pack-sidecar-macos.sh ${{ matrix.arch }}
+      - name: Tool versions
+        run: |
+          dist/sidecar/bin/ffmpeg -hide_banner -version | head -1
+          dist/sidecar/bin/ffprobe -hide_banner -version | head -1
+          dist/sidecar/bin/deno --version | head -1
+          dist/sidecar/bin/yt-dlp --version
+          dist/sidecar/node-${{ matrix.triple }} --version
+      - name: Sidecar smoke test
+        run: node src/tooling/smoke-sidecar.mjs "$PWD/dist/sidecar/node-${{ matrix.triple }}" "$PWD/dist/sidecar/server" "$PWD/dist/sidecar/bin"
+      - name: Tauri build (.app, ad-hoc signed, src/desktop/Entitlements.plist)
+        run: pnpm tauri build --target ${{ matrix.triple }} --bundles app
+      - name: Verify and zip Amber.app
+        id: pkg
+        run: |
+          APP="src/desktop/target/${{ matrix.triple }}/release/bundle/macos/Amber.app"
+          codesign --verify --deep --strict "$APP"
+          codesign -dv "$APP" 2>&1 | grep -E "Signature|flags"
+          codesign -d --entitlements - "$APP/Contents/MacOS/node" 2>&1 | grep -q allow-jit
+          grep -q 'tauri://localhost' "$APP/Contents/Resources/server/server.js"
+          file "$APP/Contents/MacOS/amber"
+          VERSION=$(node -p "require('./package.json').version")
+          NAME="Amber_${VERSION}_macos_${{ matrix.arch }}.zip"
+          mkdir -p out
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "out/$NAME"
+          (cd out && shasum -a 256 "$NAME" > "$NAME.sha256" && cat "$NAME.sha256")
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: amber-macos-${{ matrix.arch }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Attach to release (tag builds only; never overwrites existing assets)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NAME: ${{ steps.pkg.outputs.name }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --title "Amber $TAG (unofficial macOS build)" \
+              --notes "非官方 macOS（Apple Silicon）CI 构建，ad-hoc 签名、未公证。安装说明见 README 的 macOS 部分。AGPL-3.0-only，源码：https://github.com/${{ github.repository }}/tree/$TAG ；上游：https://github.com/lifefindsitsway/Amber"
+          fi
+          existing=$(gh release view "$TAG" --json assets -q '.assets[].name')
+          for f in "out/$NAME" "out/$NAME.sha256"; do
+            if printf '%s\n' "$existing" | grep -qx "$(basename "$f")"; then
+              echo "::warning::$(basename "$f") already attached to $TAG; left unchanged"
+            else
+              gh release upload "$TAG" "$f"
+            fi
+          done
