@@ -27,6 +27,53 @@ Amber 是一款开源的 AI 音视频处理工具，用户可以导入本地或�
 - 安装包尚未使用 Windows 代码签名（Authenticode），部分设备上 SmartScreen 可能提示。请先核对下载来源是本仓库的 Releases 页面，再自行决定是否继续安装。
 - 更新：客户端启动时检查一次更新，发现新版本只提示，由用户决定是否下载安装；可在「关于 Amber」中关闭自动检查或手动检查。
 
+## macOS 版（社区移植，Apple Silicon）
+
+> 本节由 fork [Maksim-venus/Amber](https://github.com/Maksim-venus/Amber) 的 `macos-build` 分支添加。Amber 原作者为 [lifefindsitsway](https://github.com/lifefindsitsway/Amber)，上游只发布 Windows 客户端；这里的 macOS 版是非官方移植，问题请先在本 fork 反馈，不要提交到上游。
+
+### 下载
+
+- [Releases › v0.1.0-macos-arm64](https://github.com/Maksim-venus/Amber/releases/tag/v0.1.0-macos-arm64)：`Amber_0.1.0_macos_arm64.zip`（附 `.sha256` 校验文件）。
+- 系统要求：Apple Silicon（M 系列芯片）Mac，macOS 11 及以上。
+
+### 安装
+
+1. 解压 `Amber_0.1.0_macos_arm64.zip`，把 `Amber.app` 拖到「应用程序」。
+2. 安装包只做了 ad-hoc 签名、未经 Apple 公证，首次打开前在终端执行：
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Amber.app
+   ```
+3. 打开 Amber。系统弹出钥匙串提示（Amber 要把本机主密钥存进钥匙串）时，选「始终允许」。
+
+### 从源码构建（macOS）
+
+前置条件：Apple Silicon Mac、Xcode 或 Command Line Tools、Rust（stable，≥ 1.85）、Node.js（满足 `package.json` 的 `engines`）、pnpm（版本见 `packageManager`，可用 Corepack 或 `npm i -g pnpm@<版本>`）。
+
+```sh
+git clone -b macos-build https://github.com/Maksim-venus/Amber.git
+cd Amber
+pnpm install --frozen-lockfile
+pnpm build
+bash src/tooling/pack-sidecar-macos.sh arm64   # 下载并校验 macOS 版 Node、yt-dlp、Deno、FFmpeg 与字体
+pnpm tauri build --bundles app
+# 产物：src/desktop/target/release/bundle/macos/Amber.app
+```
+
+### 与上游的差异
+
+- 新增 `src/desktop/tauri.macos.conf.json`、`icons/icon.icns`、`Entitlements.plist`（V8 需要的 JIT 权限；ad-hoc 构建关闭 hardened runtime）。
+- 新增 `src/tooling/pack-sidecar-macos.sh`：macOS 版 sidecar（Node 24.21.0、yt-dlp 2026.08.19、Deno 2.9.7、FFmpeg 9.0.2 静态 GPL 构建 by Martin Riedl），全部按 SHA256 校验。
+- 后端 CORS 按平台选择 WebView 来源：Windows 为 `http://tauri.localhost`，macOS/Linux 为 `tauri://localhost`（修复 macOS 白屏）。
+- sidecar 在 macOS 上透传 `HOME`、`TMPDIR` 等环境变量（yt-dlp 读取浏览器 Cookie 需要）。
+
+### 已知限制
+
+- 只有 arm64（Apple Silicon），没有 Intel / Universal 版本。
+- 未签名、未公证，需要手动去掉隔离属性。
+- YouTube 内嵌播放器在 `tauri://localhost` 来源下未经测试，可能无法播放。
+- B 站登录窗口的 Cookie 处理在 macOS 上走通用实现，未充分测试。
+- 应用内自动更新指向上游（Windows），macOS 版不会收到更新提示。
+
 ## 快速开始
 
 1. 在「新总结」里选择本地音视频文件，或粘贴 B 站 / YouTube 链接，点「开始处理」。
