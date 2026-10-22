@@ -1,6 +1,12 @@
 //! The local master key: one entry in the Windows Credential Manager, handed
-//! to the sidecar only as `AMBER_SECRET_KEY`. Values and keyring error details are never
+//! to the sidecar only as `AMBER_SECRET_KEY`. On macOS (fork-only) it is the file
+//! `<data dir>/secrets/master.key` instead (see `key_file`), and the Keychain is never read. Values and keyring error details are never
 //! logged: some keyring errors carry the stored bytes.
+
+// On macOS the Keychain path is compiled (and unit-tested) but never called.
+#![cfg_attr(target_os = "macos", allow(dead_code))]
+
+use std::path::Path;
 
 use keyring::{Entry, Error};
 
@@ -87,8 +93,37 @@ pub struct LoadedKey {
 /// would orphan every secret encrypted under it. A key stored under the legacy identifier
 /// moves to the current credential first: written there, read back and compared before the
 /// legacy entry is deleted.
-pub fn load_or_create() -> Result<LoadedKey, String> {
-    load_with(&Keyring)
+pub fn load_or_create(data_dir: &Path) -> Result<LoadedKey, String> {
+    #[cfg(target_os = "macos")]
+    {
+        load_from_file(data_dir)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = data_dir;
+        load_with(&Keyring)
+    }
+}
+
+/// A random name part for the key file's temporary file.
+#[cfg(target_os = "macos")]
+fn temp_nonce() -> Result<String, String> {
+    let mut bytes = [0u8; 8];
+    fill_random(&mut bytes)?;
+    Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
+/// macOS: the key lives in `secrets/master.key`; no Keychain access, hence no prompt.
+#[cfg(target_os = "macos")]
+fn load_from_file(data_dir: &Path) -> Result<LoadedKey, String> {
+    let (key, generated) = crate::key_file::load_or_create(data_dir, generate, &temp_nonce()?)?;
+    let note = if generated {
+        "master key generated and stored in secrets/master.key"
+    } else {
+        "master key loaded from secrets/master.key"
+    };
+    // No Keychain was consulted, so nothing is known about a legacy credential.
+    Ok(LoadedKey { key, legacy_gone: false, notes: vec![note.to_owned()] })
 }
 
 /// Deletes the legacy credential, saying in `notes` when it stays.
@@ -142,9 +177,15 @@ fn load_with(store: &impl KeyStore) -> Result<LoadedKey, String> {
 
 /// Replaces the stored master key with a fresh one after a credential reset and returns it.
 /// Nothing changes when the store refuses the write.
-pub fn rotate() -> Result<String, String> {
+pub fn rotate(data_dir: &Path) -> Result<String, String> {
     let key = generate()?;
-    Keyring.set(MASTER_KEY_SERVICE, &key).map_err(|reason| format!("store new master key: {reason}"))?;
+    #[cfg(target_os = "macos")]
+    crate::key_file::replace(data_dir, &key, &temp_nonce()?).map_err(|reason| format!("store new master key: {reason}"))?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = data_dir;
+        Keyring.set(MASTER_KEY_SERVICE, &key).map_err(|reason| format!("store new master key: {reason}"))?;
+    }
     Ok(key)
 }
 

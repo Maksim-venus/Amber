@@ -44,7 +44,13 @@ Amber 是一款开源的 AI 音视频处理工具，用户可以导入本地或�
    ```sh
    xattr -dr com.apple.quarantine /Applications/Amber.app
    ```
-3. 打开 Amber。系统弹出钥匙串提示（Amber 要把本机主密钥存进钥匙串）时，选「始终允许」。
+3. 打开 Amber 即可使用，不会再弹出钥匙串提示。
+
+### 主密钥（macOS 版存放在文件里，不用钥匙串）
+
+- 上游在 Windows 上把加密 API Key 用的主密钥放在凭据管理器。macOS 版改为文件 `~/Library/Application Support/Amber/secrets/master.key`（目录权限 0700、文件 0600，首次启动自动生成），完全不读写钥匙串。原因是 ad-hoc 签名每次重新构建签名都会变，钥匙串会拒绝读取或反复弹窗。
+- **备份：** 迁移或备份时请把 `master.key` 与整个数据目录一起保存；丢失或换掉它，已保存的 API Key 将无法解密（报 `internal.secret_unavailable`），只能在「功能配置」里重置凭据后重新填写。内置的 `.amberbackup` 备份本来就不含 API Key。
+- **安全取舍：** 钥匙串会用登录密码保护密钥，并限制只有本应用可读；文件方式下，任何以你的用户身份运行的程序都能读取 `master.key`，进而解密数据库里的 API Key。请保持 macOS 账户与磁盘加密（FileVault）安全，不要把数据目录放到共享或同步盘。
 
 ### 从源码构建（macOS）
 
@@ -62,6 +68,7 @@ pnpm tauri build --bundles app
 
 ### 与上游的差异
 
+- macOS 上主密钥改存 `secrets/master.key`（`src/desktop/src/key_file.rs`），不访问钥匙串；Windows 行为不变。
 - 新增 `src/desktop/tauri.macos.conf.json`、`icons/icon.icns`、`Entitlements.plist`（V8 需要的 JIT 权限；ad-hoc 构建关闭 hardened runtime）。
 - 新增 `src/tooling/pack-sidecar-macos.sh`：macOS 版 sidecar（Node 24.21.0、yt-dlp 2026.08.19、Deno 2.9.7、FFmpeg 9.0.2 静态 GPL 构建 by Martin Riedl），全部按 SHA256 校验。
 - 后端 CORS 按平台选择 WebView 来源：Windows 为 `http://tauri.localhost`，macOS/Linux 为 `tauri://localhost`（修复 macOS 白屏）。

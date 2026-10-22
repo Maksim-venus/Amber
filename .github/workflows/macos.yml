@@ -55,6 +55,8 @@ jobs:
           dist/sidecar/node-${{ matrix.triple }} --version
       - name: Sidecar smoke test
         run: node src/tooling/smoke-sidecar.mjs "$PWD/dist/sidecar/node-${{ matrix.triple }}" "$PWD/dist/sidecar/server" "$PWD/dist/sidecar/bin"
+      - name: Desktop crate unit tests (master key file store, etc.)
+        run: cargo test --manifest-path src/desktop/Cargo.toml --target ${{ matrix.triple }} --release
       - name: Tauri build (.app, ad-hoc signed, src/desktop/Entitlements.plist)
         run: pnpm tauri build --target ${{ matrix.triple }} --bundles app
       - name: Verify and zip Amber.app

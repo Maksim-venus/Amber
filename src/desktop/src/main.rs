@@ -11,6 +11,8 @@ mod data_dir;
 mod encoding;
 mod file_grant;
 mod files;
+#[cfg(unix)]
+mod key_file;
 mod marker;
 mod master_key;
 mod sidecar;

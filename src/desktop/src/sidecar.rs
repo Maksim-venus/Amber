@@ -204,7 +204,7 @@ impl Supervisor {
             inner.paths.resource_dir.display(),
             inner.paths.data_dir.display()
         ));
-        match master_key::load_or_create() {
+        match master_key::load_or_create(&inner.paths.data_dir) {
             Ok(loaded) => {
                 for note in &loaded.notes {
                     inner.log(note);
@@ -234,7 +234,7 @@ impl Supervisor {
     /// Stores a fresh master key and restarts the sidecar with it. When the store refuses
     /// the key nothing changes and the running sidecar keeps its old key.
     pub fn rotate_master_key(&self) -> Result<(), String> {
-        let key = master_key::rotate().inspect_err(|reason| self.0.log(&format!("master key rotation failed: {reason}")))?;
+        let key = master_key::rotate(&self.0.paths.data_dir).inspect_err(|reason| self.0.log(&format!("master key rotation failed: {reason}")))?;
         *self.0.secret_key.lock().unwrap_or_else(PoisonError::into_inner) = Some(key);
         self.0.log("master key rotated; restarting the sidecar");
         request_restart(&self.0);
